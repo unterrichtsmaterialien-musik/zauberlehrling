@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dukas: Der Zauberlehrling – Hörstellen mit Partitur</title>
+<!--
+  ANLEITUNG ZUM BEARBEITEN
+  Die Hörstellen stehen weiter unten im Skript in der Liste STELLEN.
+  Jede Stelle ist ein Eintrag in geschweiften Klammern:
+    { gruppe: 'Motive', titel: 'Besenmotiv', ziffer: '7', takte: '120–128',
+      start: '2:15', ende: '2:40', text: 'Kurzer Hinweis für die SuS.' },
+  - gruppe:  Überschrift, unter der die Stelle in der Liste erscheint
+  - ziffer:  Studierziffer der Partitur (darf leer bleiben: '')
+  - takte:   Taktangabe als Text
+  - start / ende: Zeit im Video als Minuten:Sekunden (Zehntel erlaubt, z. B. '2:15.5')
+  - text:    optionaler Kommentar (darf leer bleiben: '')
+  Wird das Video ersetzt, VIDEO_ID anpassen und bei anderem Bildausschnitt SEITE neu messen.
+-->
+<style>
+  :root {
+    --bg: #f4f2ee; --panel: #ffffff; --ink: #1d1d1f; --muted: #67676c;
+    --accent: #8a3d10; --line: #ddd8cf; --active: #fbeadb; --inrange: #f6f1ea;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
+    font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+  header { padding: 8px 16px; border-bottom: 1px solid var(--line); background: var(--panel);
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  header h1 { font-size: 17px; margin: 0; font-weight: 600; }
+  header .sub { color: var(--muted); font-size: 13px; }
+  main { flex: 1; display: flex; min-height: 0; }
+
+  #left { display: flex; flex-direction: column; padding: 10px 10px 10px 16px; min-height: 0; flex: none; }
+  #stage { position: relative; overflow: hidden; background: #fff; border: 1px solid var(--line);
+    border-radius: 4px; flex: none; }
+  #clip { position: absolute; left: 0; top: 0; overflow: hidden; transform-origin: 0 0; }
+  #clip iframe, #clip #player { position: absolute; top: 0; border: 0; pointer-events: none; }
+  #overlay { position: absolute; inset: 0; cursor: pointer; touch-action: none; }
+  #overlay.zoomed { cursor: grab; }
+  #overlay.dragging { cursor: grabbing; }
+  #msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    text-align: center; padding: 20px; color: var(--muted); background: #fff; }
+
+  #controls { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+  .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  button { font: inherit; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+    border-radius: 4px; padding: 4px 10px; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  #playBtn { width: 44px; font-size: 16px; }
+  #time { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13px; min-width: 92px; }
+  #progress { flex: 1; min-width: 120px; accent-color: var(--accent); }
+  #zoomVal { font-variant-numeric: tabular-nums; min-width: 44px; text-align: center; font-size: 13px; color: var(--muted); }
+  label { font-size: 13px; display: flex; align-items: center; gap: 4px; cursor: pointer; }
+  #now { font-size: 13px; color: var(--accent); min-height: 18px; }
+
+  #right { flex: 1; min-width: 280px; overflow-y: auto; padding: 10px 18px 20px 8px; }
+  .help { font-size: 13px; color: var(--muted); margin: 0 0 12px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted);
+    margin: 16px 0 6px; font-weight: 600; }
+  ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+  .entry { display: block; width: 100%; text-align: left; padding: 7px 10px; border-radius: 5px; }
+  .entry .t { font-weight: 600; display: block; }
+  .entry .meta { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .entry .txt { font-size: 13px; display: block; margin-top: 2px; }
+  .entry.inrange { background: var(--inrange); }
+  .entry.current { background: var(--active); border-color: var(--accent); }
+  footer { font-size: 12px; color: var(--muted); margin-top: 22px; }
+  footer a { color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Paul Dukas: L’apprenti sorcier (Der Zauberlehrling, 1897)</h1>
+  <span class="sub">Hörstellen mit Partitur</span>
+</header>
+<main>
+  <section id="left">
+    <div id="stage">
+      <div id="clip"><div id="player"></div></div>
+      <div id="overlay" title="Klick: Start/Pause · Mausrad: Zoom · Ziehen: Ausschnitt verschieben"></div>
+      <div id="msg">Video wird geladen …</div>
+    </div>
+    <div id="controls">
+      <div class="row">
+        <button id="playBtn" title="Start/Pause (Leertaste)">▶</button>
+        <span id="time">0:00 / 0:00</span>
+        <input id="progress" type="range" min="0" max="1000" value="0" aria-label="Position im Video">
+      </div>
+      <div class="row">
+        <button id="zoomOut" title="Verkleinern (−)">−</button>
+        <span id="zoomVal">100 %</span>
+        <button id="zoomIn" title="Vergrössern (+)">+</button>
+        <button id="zoomReset" title="Ganze Seite (0)">Ganze Seite</button>
+        <button id="repeat" title="Stelle wiederholen (R)">↺ Stelle wiederholen</button>
+        <label><input id="stopAtEnd" type="checkbox" checked> am Ende der Stelle anhalten</label>
+      </div>
+      <div id="now"></div>
+    </div>
+  </section>
+  <aside id="right">
+    <p class="help">Klicken Sie auf eine Stelle: Das Video springt dorthin und hält am Ende der Stelle an.
+      Über der Partitur zoomen Sie mit dem Mausrad und verschieben den Ausschnitt mit gedrückter Maustaste.
+      Leertaste: Start/Pause.</p>
+    <div id="list"></div>
+    <footer>
+      Aufnahme und Partiturvideo: <a href="https://www.youtube.com/watch?v=Bthh8bXq-J8" target="_blank" rel="noopener">FollowTheScore auf YouTube</a>
+      · Partitur: DigitalScores
+    </footer>
+  </aside>
+</main>
+
+<script>
+/* ===================== DATEN ===================== */
+const VIDEO_ID = 'Bthh8bXq-J8';
+
+// Lage der Partiturseite im Videobild (Anteile der Videobreite), gemessen am Video
+const SEITE = { links: 0.3015, breite: 0.397 };
+
+const STELLEN = [
+  { gruppe: 'Test', titel: 'Beginn (Platzhalter)', ziffer: '', takte: '1',
+    start: '0:00', ende: '0:30', text: 'Testeintrag – wird durch die eigentlichen Stellen ersetzt.' },
+];
+
+/* ===================== PROGRAMM ===================== */
+const RENDER = 2;          // Player wird doppelt so gross gerendert → YouTube liefert höhere Auflösung
+const ZOOM_MAX = 6;
+const $ = id => document.getElementById(id);
+const stage = $('stage'), clip = $('clip'), overlay = $('overlay');
+
+function sek(v) {
+  if (typeof v === 'number') return v;
+  const p = String(v).trim().split(':').map(Number);
+  return p.reduce((a, b) => a * 60 + b, 0);
+}
+function fmt(t) {
+  t = Math.max(0, t || 0);
+  const m = Math.floor(t / 60), s = Math.floor(t % 60);
+  return m + ':' + String(s).padStart(2, '0');
+}
+STELLEN.forEach((e, i) => { e.i = i; e.s = sek(e.start); e.e = sek(e.ende); });
+
+/* ---------- Liste ---------- */
+const listEl = $('list');
+const buttons = [];
+(function renderList() {
+  const groups = [];
+  STELLEN.forEach(e => {
+    let g = groups.find(x => x.name === e.gruppe);
+    if (!g) groups.push(g = { name: e.gruppe, items: [] });
+    g.items.push(e);
+  });
+  groups.forEach(g => {
+    const h = document.createElement('h2'); h.textContent = g.name; listEl.appendChild(h);
+    const ul = document.createElement('ul');
+    g.items.forEach(e => {
+      const li = document.createElement('li');
+      const b = document.createElement('button'); b.className = 'entry';
+      const meta = [e.ziffer ? 'Ziffer ' + e.ziffer : '', e.takte ? 'T. ' + e.takte : '',
+                    fmt(e.s) + '–' + fmt(e.e)].filter(Boolean).join(' · ');
+      b.innerHTML = '<span class="t"></span><span class="meta"></span>' + (e.text ? '<span class="txt"></span>' : '');
+      b.querySelector('.t').textContent = e.titel;
+      b.querySelector('.meta').textContent = meta;
+      if (e.text) b.querySelector('.txt').textContent = e.text;
+      b.addEventListener('click', () => playEntry(e));
+      buttons[e.i] = b;
+      li.appendChild(b); ul.appendChild(li);
+    });
+    listEl.appendChild(ul);
+  });
+})();
+
+/* ---------- Layout und Zoom ---------- */
+let W = 0, H = 0, s = 1, tx = 0, ty = 0;
+function layout() {
+  const aspect = SEITE.breite * 16 / 9;
+  const avail = document.querySelector('main').clientHeight - 20 - $('controls').offsetHeight - 8;
+  H = avail; W = H * aspect;
+  const maxW = window.innerWidth * 0.62;
+  if (W > maxW) { W = maxW; H = W / aspect; }
+  W = Math.floor(W); H = Math.floor(H);
+  stage.style.width = W + 'px'; stage.style.height = H + 'px';
+  $('controls').style.width = Math.max(W, 430) + 'px';
+  $('left').style.width = (Math.max(W, 430) + 26) + 'px';
+  const ifH = H * RENDER, ifW = ifH * 16 / 9;
+  clip.style.width = (W * RENDER) + 'px';
+  clip.style.height = ifH + 'px';
+  const f = $('player');
+  f.style.width = ifW + 'px'; f.style.height = ifH + 'px';
+  f.style.left = (-SEITE.links * ifW) + 'px';
+  apply();
+}
+function apply() {
+  tx = Math.min(0, Math.max(W - W * s, tx));
+  ty = Math.min(0, Math.max(H - H * s, ty));
+  clip.style.transform = 'translate(' + tx + 'px, ' + ty + 'px) scale(' + (s / RENDER) + ')';
+  $('zoomVal').textContent = Math.round(s * 100) + ' %';
+  overlay.classList.toggle('zoomed', s > 1.001);
+}
+function zoomAt(newS, cx, cy) {
+  newS = Math.min(ZOOM_MAX, Math.max(1, newS));
+  const px = (cx - tx) / s, py = (cy - ty) / s;
+  s = newS; tx = cx - px * s; ty = cy - py * s;
+  apply();
+}
+window.addEventListener('resize', layout);
+$('zoomIn').onclick = () => zoomAt(s * 1.4, W / 2, H / 2);
+$('zoomOut').onclick = () => zoomAt(s / 1.4, W / 2, H / 2);
+$('zoomReset').onclick = () => { s = 1; tx = 0; ty = 0; apply(); };
+
+overlay.addEventListener('wheel', ev => {
+  ev.preventDefault();
+  const r = stage.getBoundingClientRect();
+  zoomAt(s * Math.exp(-ev.deltaY * 0.0015), ev.clientX - r.left, ev.clientY - r.top);
+}, { passive: false });
+
+let drag = null;
+overlay.addEventListener('pointerdown', ev => {
+  drag = { x: ev.clientX, y: ev.clientY, tx, ty, moved: false };
+  overlay.setPointerCapture(ev.pointerId);
+});
+overlay.addEventListener('pointermove', ev => {
+  if (!drag) return;
+  const dx = ev.clientX - drag.x, dy = ev.clientY - drag.y;
+  if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true;
+  if (drag.moved && s > 1.001) {
+    overlay.classList.add('dragging');
+    tx = drag.tx + dx; ty = drag.ty + dy; apply();
+  }
+});
+overlay.addEventListener('pointerup', () => {
+  if (drag && !drag.moved) togglePlay();
+  drag = null; overlay.classList.remove('dragging');
+});
+
+/* ---------- Player ---------- */
+let player = null, ready = false, stopAt = null, current = null, seeking = false;
+
+const tag = document.createElement('script');
+tag.src = 'https://www.youtube.com/iframe_api';
+tag.onerror = () => { $('msg').textContent = 'Das Video konnte nicht geladen werden. Bitte Internetverbindung prüfen.'; };
+document.head.appendChild(tag);
+
+window.onYouTubeIframeAPIReady = function () {
+  player = new YT.Player('player', {
+    host: 'https://www.youtube-nocookie.com',
+    videoId: VIDEO_ID,
+    width: 640, height: 360,
+    playerVars: { controls: 0, rel: 0, disablekb: 1, fs: 0, iv_load_policy: 3, playsinline: 1 },
+    events: {
+      onReady: () => { ready = true; $('msg').remove(); layout(); },
+      onStateChange: ev => { $('playBtn').textContent = ev.data === YT.PlayerState.PLAYING ? '❚❚' : '▶'; },
+      onError: () => { $('msg').textContent = 'Das Video ist nicht verfügbar oder darf nicht eingebettet werden.'; }
+    }
+  });
+  layout();
+};
+
+function togglePlay() {
+  if (!ready) return;
+  if (player.getPlayerState() === YT.PlayerState.PLAYING) player.pauseVideo();
+  else player.playVideo();
+}
+function playEntry(e) {
+  if (!ready) return;
+  current = e;
+  stopAt = $('stopAtEnd').checked ? e.e : null;
+  player.seekTo(e.s, true);
+  player.playVideo();
+  const meta = [e.ziffer ? 'Ziffer ' + e.ziffer : '', e.takte ? 'T. ' + e.takte : ''].filter(Boolean).join(', ');
+  $('now').textContent = 'Stelle: ' + e.titel + (meta ? ' – ' + meta : '');
+  buttons.forEach(b => b.classList.remove('current'));
+  buttons[e.i].classList.add('current');
+}
+$('playBtn').onclick = togglePlay;
+$('repeat').onclick = () => { if (current) playEntry(current); };
+$('stopAtEnd').onchange = () => {
+  if (!$('stopAtEnd').checked) stopAt = null;
+  else if (current && ready && player.getCurrentTime() < current.e) stopAt = current.e;
+};
+
+const prog = $('progress');
+prog.addEventListener('input', () => {
+  seeking = true;
+  if (ready) $('time').textContent = fmt(prog.value / 1000 * player.getDuration()) + ' / ' + fmt(player.getDuration());
+});
+prog.addEventListener('change', () => {
+  if (ready) { stopAt = null; player.seekTo(prog.value / 1000 * player.getDuration(), true); }
+  seeking = false;
+});
+
+setInterval(() => {
+  if (!ready) return;
+  const t = player.getCurrentTime(), d = player.getDuration();
+  if (stopAt !== null && t >= stopAt) { player.pauseVideo(); stopAt = null; }
+  if (!seeking) {
+    $('time').textContent = fmt(t) + ' / ' + fmt(d);
+    if (d) prog.value = Math.round(t / d * 1000);
+  }
+  STELLEN.forEach(e => buttons[e.i].classList.toggle('inrange', t >= e.s && t < e.e));
+}, 100);
+
+/* ---------- Tastatur ---------- */
+document.addEventListener('keydown', ev => {
+  if (ev.target.tagName === 'INPUT' && ev.target.type === 'range' && ev.key.startsWith('Arrow')) return;
+  if (ev.key === ' ') { ev.preventDefault(); togglePlay(); }
+  else if (ev.key === '+' || ev.key === '=') zoomAt(s * 1.4, W / 2, H / 2);
+  else if (ev.key === '-') zoomAt(s / 1.4, W / 2, H / 2);
+  else if (ev.key === '0') { s = 1; tx = 0; ty = 0; apply(); }
+  else if (ev.key === 'r' || ev.key === 'R') { if (current) playEntry(current); }
+  else if (ready && ev.key === 'ArrowLeft') { stopAt = null; player.seekTo(player.getCurrentTime() - 5, true); }
+  else if (ready && ev.key === 'ArrowRight') { stopAt = null; player.seekTo(player.getCurrentTime() + 5, true); }
+});
+
+layout();
+</script>
+</body>
+</html>
