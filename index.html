@@ -75,6 +75,10 @@
   #edit .key { font-size: 11px; color: var(--muted); }
   #eNote { width: 100%; height: 70px; font: 13px/1.35 system-ui, sans-serif; margin: 2px 0 8px; padding: 5px; border: 1px solid #c9a88e; border-radius: 4px; }
   #eNoteLabel { font-size: 12.5px; font-weight: 600; display: block; margin-top: 4px; }
+  .eLab { font-size: 12.5px; font-weight: 600; display: block; margin-top: 4px; }
+  #eTitle, #eTok { width: 100%; font: 13px system-ui, sans-serif; padding: 4px; margin: 2px 0 6px; border: 1px solid #c9a88e; border-radius: 4px; }
+  #eText { width: 100%; height: 150px; font: 13px/1.4 system-ui, sans-serif; padding: 5px; margin: 2px 0 6px; border: 1px solid #c9a88e; border-radius: 4px; }
+  #ePublish { background: #8a3d10; color: #fff; border-color: #8a3d10; }
   #editOut { width: 100%; height: 90px; font: 12px/1.3 ui-monospace, Consolas, monospace; display: none; margin-top: 6px; }
   #editInfo { font-size: 12.5px; color: var(--muted); }
   .entry .edited { color: #1a7f37; font-weight: 600; }
@@ -115,6 +119,10 @@
       <div id="editInfo">Stelle in der Liste anklicken. Dann im richtigen Moment <b>S</b> (Start) bzw. <b>E</b> (Ende) drücken.</div>
       <div id="editTarget">–</div>
       <div id="editTimes">Start <b id="eStart">–</b> · Ende <b id="eEnd">–</b> · jetzt <b id="eNow">0:00.0</b></div>
+      <label class="eLab" for="eTitle">Titel:</label>
+      <input id="eTitle" type="text">
+      <label class="eLab" for="eText">Text (direkt bearbeiten):</label>
+      <textarea id="eText"></textarea>
       <label id="eNoteLabel" for="eNote">Hinweis zur Neuformulierung des Textes dieser Stelle:</label>
       <textarea id="eNote" placeholder="z. B. Terzfall des Zauberspruchs erwähnen, Fachbegriff ergänzen …"></textarea>
       <div class="row">
@@ -129,10 +137,12 @@
         <button data-nudge="e,0.5">Ende +0.5</button>
       </div>
       <div class="row">
+        <button id="ePublish">Auf Website speichern</button>
         <button id="eCopy">Liste kopieren</button>
         <button id="eReset">Änderungen verwerfen</button>
       </div>
       <textarea id="editOut" readonly></textarea>
+      <div id="eTokRow" style="display:none"><label class="eLab" for="eTok">GitHub-Schlüssel (nur einmal nötig):</label><input id="eTok" type="password" autocomplete="off"><button id="eTokSave">Schlüssel speichern</button></div>
     </div>
     <p class="help">Klicken Sie auf eine Stelle: Das Video springt dorthin und hält am Ende der Stelle an.
       Über der Partitur zoomen Sie mit dem Mausrad und verschieben den Ausschnitt mit gedrückter Maustaste.
@@ -155,13 +165,13 @@ const SEITE = { links: 0.3015, breite: 0.397 };
 // Zeiten vorläufig (aus Seitenwechseln geschätzt) – werden im Bearbeitungsmodus präzisiert
 const STELLEN = [
   { gruppe: 'Einleitung', titel: 'Die leere Werkstatt', ziffer: '', takte: '1–6',
-    start: '0:00', ende: '0:35.7', text: '«Assez lent» (ziemlich langsam). Der Meister hat die Werkstatt verlassen, der Lehrling ist allein. Die Violinen spielen con sordino (Partitur: «avec sourdines»), also mit Dämpfer: Der Klang wird matt und verschleiert. Die 1. Violinen beginnen pizzicato (gezupft) und wechseln dann zu arco (mit dem Bogen), die 2. Violinen spielen divisi (geteilt) leise, gebundene Figuren, die langsam abwärts fliessen: So klingt das Wasser – noch ruhig, später wird daraus die Flut. Bratschen und Celli halten lange Töne. Der Zusammenklang ist ein übermässiger Akkord: Er klingt schwebend und unaufgelöst – nichts ist fest, alles ist in der Schwebe. Darüber huschen Piccolo und Flöten pianissimo (sehr leise) und «léger» (leicht) eine wellenartig abwärts fliessende Figur im Rhythmus lang–kurz–kurz, die stufenweise tiefer sequenziert wird: die Vorwegnahme des Wassermotivs, das ab Ziffer 9 in den Streichern seine volle Gestalt erhält. Dann spielen Klarinette, Oboe und Flöte nacheinander solo und espressivo (ausdrucksvoll) eine Abspaltung des Besenthemas: Das spätere Hauptthema klingt hier schon an, noch langsam und geheimnisvoll. Die Harfe spielt Flageolett-Töne (Partitur: «Harmoniques»), zarte, glockenartige Obertöne.' },
-  { gruppe: 'Einleitung', titel: 'Die Einleitung beginnt von neuem', ziffer: '1', takte: '7–16',
-    start: '0:36.4', ende: '1:12.8', text: 'Bei Ziffer 1 erklingt die Musik des Anfangs ein zweites Mal, nun etwas dichter. Wieder die huschende Flötenfigur «léger», die Vorwegnahme des Wassermotivs, wieder die drei Soli in Klarinette, Oboe und Flöte mit der Abspaltung des Besenthemas. Die Harfe spielt Flageolett-Töne, die Violinen beginnen pizzicato und spielen dann arco rasche, gebundene Figuren; drei Solo-Violinen («3 Soli») spielen hohe Flageolett-Töne. Nach einer Fermate (Partitur bei den Violinen: «ôtez les sourdines», Dämpfer weg) bricht die Musik ins «Vif» (lebhaft) im 9/16-Takt aus: Flöten, Oboen und Klarinetten spielen forte rasche Figuren, die Hörner setzen kräftig ein, die Streicher spielen pizzicato, die Harfe fegt in einem glissando (Gleiten über die Saiten) fortissimo nach oben. Ein erster Vorgeschmack auf den Zauber.' },
+    start: '0:00', ende: '0:35.7', text: '«Assez lent» (ziemlich langsam). Der Meister hat die Werkstatt verlassen, der Lehrling ist allein. Die Violinen spielen con sordino (Partitur: «avec sourdines»), also mit Dämpfer: Der Klang wird matt und verschleiert. Die 1. Violinen beginnen pizzicato (gezupft) und wechseln dann zu arco (mit dem Bogen), die 2. Violinen spielen divisi (geteilt) leise, gebundene Figuren im Rhythmus lang–kurz–kurz, die wellenartig abwärts fliessen und stufenweise tiefer sequenziert werden: die Vorwegnahme des Wassermotivs, das ab Ziffer 9 seine volle Gestalt erhält – noch ruhig, später wird daraus die Flut. Bratschen und Celli halten lange Töne. Der Zusammenklang ist ein übermässiger Akkord: Er klingt schwebend und unaufgelöst – nichts ist fest, alles ist in der Schwebe. Darüber huschen Piccolo und Flöten fast unhörbar mit schnellen Staccato-Figuren (kurz gestossen), pianissimo (sehr leise) und «léger» (leicht). Dann spielen Klarinette, Oboe und Flöte nacheinander solo und espressivo (ausdrucksvoll) eine Abspaltung des Besenthemas: Das spätere Hauptthema klingt hier schon an, noch langsam und geheimnisvoll. Die Harfe spielt Flageolett-Töne (Partitur: «Harmoniques»), zarte, glockenartige Obertöne.' },
+  { gruppe: 'Einleitung', titel: 'Die Einleitung beginnt von neuem', ziffer: '1', takte: '7–13',
+    start: '0:36.4', ende: '1:12.8', text: 'Bei Ziffer 1 erklingt die Musik des Anfangs ein zweites Mal, nun etwas dichter. Wieder huschen die Flöten mit ihren Staccato-Figuren «léger», wieder fliesst in den Violinen die Vorwegnahme des Wassermotivs abwärts, wieder spielen Klarinette, Oboe und Flöte die drei Soli in Klarinette, Oboe und Flöte mit der Abspaltung des Besenthemas. Die Harfe spielt Flageolett-Töne, die Violinen beginnen pizzicato und spielen dann arco rasche, gebundene Figuren; drei Solo-Violinen («3 Soli») spielen hohe Flageolett-Töne. Der Abschnitt endet mit einer Fermate in T. 13: Die Musik hält inne.' },
   { gruppe: 'Einleitung', titel: 'Besenmotiv in der Trompete, Zauberspruch in der Flöte', ziffer: '2', takte: '17–19',
     start: '1:16.5', ende: '1:29.5', text: 'Bei Ziffer 2 spielt eine Solo-Trompete con sordino (Partitur: «avec sourdine», mit Dämpfer) forte das Besenmotiv: eine Vorwegnahme des Besenthemas, das erst bei Ziffer 7 in den Fagotten vollständig erklingt. Einen Takt später, im langsamen Anfangstempo («1er mouvement»), erklingt zum ersten Mal der Zauberspruch: Die Flöte spielt ihn solo, die Harfe spielt mit. Charakteristisch sind der Terzfall und seine Rhythmisierung. Die Streicher halten divisi (geteilt) pianississimo (ppp, äusserst leise) einen Klangteppich.' },
-  { gruppe: 'Einleitung', titel: 'Der Zauberspruch im Horn: Echo-Klang', ziffer: '3', takte: '20–22',
-    start: '1:29.5', ende: '1:47.5', text: 'Bei Ziffer 3 übernimmt ein Horn allein den Zauberspruch mit dem Terzfall, nun mit «sons d’écho» (Echo-Klang): Der Ton wird mit der Hand im Schalltrichter verfremdet und klingt wie aus weiter Ferne. Damit die Tonhöhe stimmt, greift der Hornist einen Halbton höher («prenez le doigté un ½ ton au dessus»). Der Lehrling murmelt die Zauberformel leise vor sich hin.' },
+  { gruppe: 'Einleitung', titel: 'Das Besenthema im Horn: Echo-Klang', ziffer: '3', takte: '20–22',
+    start: '1:29.5', ende: '1:47.5', text: 'Bei Ziffer 3 spielt ein Horn allein eine Abspaltung aus der Mitte des Besenthemas, mit «sons d’écho» (Echo-Klang): Der Ton wird mit der Hand im Schalltrichter verfremdet und klingt wie aus weiter Ferne. Damit die Tonhöhe stimmt, greift der Hornist einen Halbton höher («prenez le doigté un ½ ton au dessus»). Wieder klingt das Besenthema an, bevor es bei Ziffer 7 vollständig erscheint.' },
   { gruppe: 'Einleitung', titel: 'Vif: Jetzt wird gezaubert', ziffer: '', takte: '23–31',
     start: '1:47.5', ende: '2:00.8', text: 'Bei T. 23 bricht das «Vif» (lebhaft) im 9/16-Takt los – jetzt wird wirklich gezaubert. Das ganze Orchester spielt fortissimo: Flöten, Oboen und Klarinetten mit rasch aufschiessenden Figuren, die Streicher unisono pizzicato, die Harfe kräftig mit. Die Hörner spielen gestopft (Partitur: «bouchés»): Der Hornist verschliesst den Schalltrichter mit der Hand fast ganz, der Ton wird scharf, gepresst und metallisch. Die Trompeten spielen zu zweit con sordino (Partitur: «à 2 avec sourdine», mit Dämpfer) fortissimo – ein näselnder, unheimlicher Klang. So entsteht ein fremdartiger, magischer Orchesterklang.' },
   { gruppe: 'Einleitung', titel: 'Steigerung und «Silence»', ziffer: '4–5', takte: '32–41',
@@ -169,9 +179,9 @@ const STELLEN = [
   { gruppe: 'Exposition', titel: 'Der Besen erwacht', ziffer: '6', takte: '42–71',
     start: '2:12', ende: '2:27', text: 'Jetzt beginnt der schnelle Hauptteil, «Vif» im 3/8-Takt. Ganz tief und leise (piano) tupfen Bassklarinette, Kontrafagott, Hörner und Pauke einzelne kurze Töne – zuerst mit langen Pausen dazwischen, dann immer dichter. Man hört, wie der Besen zum Leben erwacht: Er regt sich, bekommt Beine und beginnt sich zu bewegen.' },
   { gruppe: 'Exposition', titel: 'Das Besenthema in den Fagotten', ziffer: '7', takte: '72–96',
-    start: '2:27', ende: '2:37', text: 'Das berühmte Besenthema: Was in der Einleitung nur angedeutet war – in den Soli von Klarinette, Oboe und Flöte und in der Trompete bei Ziffer 2 –, erklingt hier zum ersten Mal vollständig. Drei Fagotte spielen es gemeinsam (Partitur: «à 3») im mezzoforte (mittellaut), in f-Moll. Die kurzen, gestossenen Töne (staccato) klingen wie hölzerne, etwas ungelenke Schritte – der Besen marschiert los. Die Streicher begleiten pizzicato und piano, Kontrafagott, Bassklarinette, Hörner und Pauke geben den Grundschlag. Bei Ziffer 8 übernehmen Klarinette und Bassklarinette das Thema piano marcato (leise, aber betont).' },
+    start: '2:27', ende: '2:37', text: 'Das berühmte Besenthema: Was in der Einleitung nur angedeutet war – in den Soli von Klarinette, Oboe und Flöte, in der Trompete bei Ziffer 2 und im Horn bei Ziffer 3 –, erklingt hier zum ersten Mal vollständig. Drei Fagotte spielen es gemeinsam (Partitur: «à 3») im mezzoforte (mittellaut), in f-Moll. Die kurzen, gestossenen Töne (staccato) klingen wie hölzerne, etwas ungelenke Schritte – der Besen marschiert los. Die Streicher begleiten pizzicato und piano, Kontrafagott, Bassklarinette, Hörner und Pauke geben den Grundschlag. Bei Ziffer 8 übernehmen Klarinette und Bassklarinette das Thema piano marcato (leise, aber betont).' },
   { gruppe: 'Exposition', titel: 'Das Thema wandert durchs Orchester', ziffer: '8–12', takte: '97–158',
-    start: '2:37', ende: '3:06', text: 'Das Besenthema wandert jetzt von Instrument zu Instrument: Nach den Fagotten übernehmen die Klarinetten, dann weitere Holzbläser. Mit jedem Einsatz kommen Instrumente dazu, der Klang wird voller und lauter. Bei Ziffer 9 tritt das Wassermotiv in voller Gestalt hinzu: Die Streicher spielen arco und piano in jedem Takt eine lange Note (Viertel), die in einen raschen Schleifer übergeht (eine Sechzehntel und zwei Zweiunddreissigstel unter einem Bogen): Tonwiederholung, untere Wechselnote, zurück. Der Grundrhythmus lang–kurz–kurz ist hier also verziert. Takt um Takt wird die Figur einen Ton tiefer sequenziert, so dass sie wellenartig abwärts fliesst – in der Einleitung haben die Flöten dieses Motiv vorweggenommen. Becken und Hörner setzen ein: Das Wasser steigt. So wird hörbar, wie der Besen immer eifriger Wasser holt – Eimer um Eimer.' },
+    start: '2:37', ende: '3:06', text: 'Das Besenthema wandert jetzt von Instrument zu Instrument: Nach den Fagotten übernehmen die Klarinetten, dann weitere Holzbläser. Mit jedem Einsatz kommen Instrumente dazu, der Klang wird voller und lauter. Bei Ziffer 9 tritt das Wassermotiv in voller Gestalt hinzu: Die Streicher spielen arco und piano in jedem Takt eine lange Note (Viertel), die in einen raschen Schleifer übergeht (eine Sechzehntel und zwei Zweiunddreissigstel unter einem Bogen): Tonwiederholung, untere Wechselnote, zurück. Der Grundrhythmus lang–kurz–kurz ist hier also verziert. Takt um Takt wird die Figur einen Ton tiefer sequenziert, so dass sie wellenartig abwärts fliesst – in der Einleitung haben die 2. Violinen dieses Motiv vorweggenommen. Becken und Hörner setzen ein: Das Wasser steigt. So wird hörbar, wie der Besen immer eifriger Wasser holt – Eimer um Eimer.' },
   { gruppe: 'Exposition', titel: 'Helles Thema in Holz und Glockenspiel', ziffer: '18', takte: '201–228',
     start: '3:27', ende: '3:38', text: 'Ein neues, helles Thema: Flöten, Oboen und Klarinetten spielen piano «léger et détaché» (leicht und deutlich voneinander abgesetzt), das Glockenspiel spielt mit. Die Streicher zupfen pizzicato. Der Klang glitzert wie Wassertropfen – der Lehrling freut sich über seinen Erfolg. Ab Ziffer 18 wird es lauter: crescendo bis zum forte, mit kräftigen Akzenten (sforzato, plötzlich stark betont).' },
   { gruppe: 'Exposition', titel: 'Tutti-Durchbruch «Au mouvement»', ziffer: '22', takte: '249–266',
@@ -238,11 +248,11 @@ const STORE = 'zauberlehrling-zeiten-v3';
 let saved = {};
 if (EDIT) {
   try { saved = JSON.parse(localStorage.getItem(STORE) || '{}'); } catch (err) { saved = {}; }
-  STELLEN.forEach(e => { const v = saved[e.i]; if (v) { if (v.s != null) { e.s = v.s; e.e = v.e; e.edited = true; } if (v.note) e.note = v.note; } });
+  STELLEN.forEach(e => { const v = saved[e.i]; if (v) { if (v.s != null) { e.s = v.s; e.e = v.e; e.edited = true; } if (v.note) e.note = v.note; if (v.text != null) { e.text = v.text; e.titel = v.titel; e.textEdited = true; } } });
 }
 function persist() {
   const o = {};
-  STELLEN.forEach(e => { if (e.edited || e.note) o[e.i] = e.edited ? { s: e.s, e: e.e, note: e.note || '' } : { note: e.note }; });
+  STELLEN.forEach(e => { if (!(e.edited || e.note || e.textEdited)) return; const v = {}; if (e.edited) { v.s = e.s; v.e = e.e; } if (e.note) v.note = e.note; if (e.textEdited) { v.text = e.text; v.titel = e.titel; } o[e.i] = v; });
   try { localStorage.setItem(STORE, JSON.stringify(o)); } catch (err) {}
 }
 
@@ -255,6 +265,8 @@ function metaText(e) {
 }
 function refreshEntry(e) {
   const b = buttons[e.i];
+  b.querySelector('.t').textContent = e.titel;
+  const tx = b.querySelector('.txt'); if (tx) tx.textContent = e.text;
   b.querySelector('.meta').textContent = metaText(e);
   const m = b.querySelector('.edited');
   if (m) m.textContent = (e.edited ? ' ✓ bearbeitet' : '') + (e.note ? ' ✎ Hinweis' : '');
@@ -432,6 +444,8 @@ function updateEditPanel() {
   $('eStart').textContent = fmt1(e.s);
   $('eEnd').textContent = fmt1(e.e);
   $('eNote').value = e.note || '';
+  $('eTitle').value = e.titel;
+  $('eText').value = e.text;
 }
 function changeTime(which, value) {
   if (!current) return;
@@ -440,15 +454,44 @@ function changeTime(which, value) {
   current.edited = true;
   persist(); refreshEntry(current); updateEditPanel();
 }
-function exportText() {
-  const q = v => "'" + String(v).replace(/'/g, '’') + "'";
+function exportText(noNotes) {
+  const q = v => "'" + String(v).replace(/\\/g, '').replace(/'/g, '’').replace(/\s*\n\s*/g, ' ') + "'";
   return 'const STELLEN = [\n' + STELLEN.map(e =>
     '  { gruppe: ' + q(e.gruppe) + ', titel: ' + q(e.titel) + ', ziffer: ' + q(e.ziffer) + ', takte: ' + q(e.takte) + ',\n' +
-    '    start: ' + q(fmt1(e.s)) + ', ende: ' + q(fmt1(e.e)) + ', text: ' + q(e.text) + (e.note ? ',\n    HINWEIS: ' + q(e.note) : '') + ' },'
+    '    start: ' + q(fmt1(e.s)) + ', ende: ' + q(fmt1(e.e)) + ', text: ' + q(e.text) + (e.note && !noNotes ? ',\n    HINWEIS: ' + q(e.note) : '') + ' },'
   ).join('\n') + '\n];';
 }
 if (EDIT) {
   $('eNote').oninput = () => { if (!current) return; current.note = $('eNote').value; persist(); refreshEntry(current); };
+  $('eTitle').oninput = () => { if (!current) return; current.titel = $('eTitle').value; current.textEdited = true; persist(); refreshEntry(current); };
+  $('eText').oninput = () => { if (!current) return; current.text = $('eText').value; current.textEdited = true; persist(); refreshEntry(current); };
+  const REPO = 'https://api.github.com/repos/unterrichtsmaterialien-musik/zauberlehrling/contents/index.html';
+  const getTok = () => { try { return localStorage.getItem('zl-gh-token') || ''; } catch (err) { return ''; } };
+  const b64e = s => { const u = new TextEncoder().encode(s); let bin = ''; for (let k = 0; k < u.length; k += 8192) bin += String.fromCharCode.apply(null, u.subarray(k, k + 8192)); return btoa(bin); };
+  const b64d = s => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\n/g, '')), c => c.charCodeAt(0)));
+  $('eTokSave').onclick = () => { try { localStorage.setItem('zl-gh-token', $('eTok').value.trim()); } catch (err) {} $('eTok').value = ''; $('eTokRow').style.display = 'none'; $('editInfo').textContent = 'Schlüssel gespeichert. Jetzt «Auf Website speichern» drücken.'; };
+  $('ePublish').onclick = async () => {
+    const tok = getTok();
+    if (!tok) { $('eTokRow').style.display = 'block'; $('editInfo').textContent = 'Bitte einmalig den GitHub-Schlüssel eingeben.'; return; }
+    const HD = { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json' };
+    $('editInfo').textContent = 'Speichere …';
+    try {
+      const r = await fetch(REPO + '?ref=main&t=' + Date.now(), { headers: HD, cache: 'no-store' });
+      if (!r.ok) throw new Error('Lesen fehlgeschlagen (' + r.status + ')');
+      const j = await r.json();
+      const src = b64d(j.content);
+      const a = src.indexOf('const STELLEN = ['), b = src.indexOf('\n];', a);
+      if (a < 0 || b < 0) throw new Error('Liste in der Datei nicht gefunden');
+      const neu = src.slice(0, a) + exportText(true) + src.slice(b + 3);
+      const w = await fetch(REPO, { method: 'PUT', headers: HD, body: JSON.stringify({ message: 'Zeiten und Texte aus dem Bearbeitungsmodus', content: b64e(neu), sha: j.sha, branch: 'main' }) });
+      if (!w.ok) throw new Error('Speichern fehlgeschlagen (' + w.status + ')');
+      $('editInfo').textContent = 'Gespeichert. Die Schülerseite zeigt die Änderungen in etwa 1–2 Minuten.';
+    } catch (err) {
+      const bad = /\((401|403)\)/.test(err.message);
+      $('editInfo').textContent = 'Fehler: ' + err.message + (bad ? ' – Schlüssel ungültig oder ohne Schreibrecht, bitte neu eingeben.' : '');
+      if (bad) { try { localStorage.removeItem('zl-gh-token'); } catch (e2) {} $('eTokRow').style.display = 'block'; }
+    }
+  };
   $('ePre').onclick = () => { if (current) playFrom(current.s - 3, current.e); };
   $('eSetStart').onclick = () => { if (ready) changeTime('s', player.getCurrentTime()); };
   $('eSetEnd').onclick = () => { if (ready) changeTime('e', player.getCurrentTime()); };
@@ -474,7 +517,7 @@ if (EDIT) {
 
 /* ---------- Tastatur ---------- */
 document.addEventListener('keydown', ev => {
-  if (ev.target.tagName === 'TEXTAREA') return;
+  if (ev.target.tagName === 'TEXTAREA' || (ev.target.tagName === 'INPUT' && (ev.target.type === 'text' || ev.target.type === 'password'))) return;
   if (ev.target.tagName === 'INPUT' && ev.target.type === 'range' && ev.key.startsWith('Arrow')) return;
   const k = ev.key;
   if (k === ' ') { ev.preventDefault(); togglePlay(); }
