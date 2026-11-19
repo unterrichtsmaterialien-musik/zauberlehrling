@@ -73,6 +73,8 @@
   #editTimes b { font-size: 16px; }
   #edit .row { margin-bottom: 6px; }
   #edit .key { font-size: 11px; color: var(--muted); }
+  #eNote { width: 100%; height: 70px; font: 13px/1.35 system-ui, sans-serif; margin: 2px 0 8px; padding: 5px; border: 1px solid #c9a88e; border-radius: 4px; }
+  #eNoteLabel { font-size: 12.5px; font-weight: 600; display: block; margin-top: 4px; }
   #editOut { width: 100%; height: 90px; font: 12px/1.3 ui-monospace, Consolas, monospace; display: none; margin-top: 6px; }
   #editInfo { font-size: 12.5px; color: var(--muted); }
   .entry .edited { color: #1a7f37; font-weight: 600; }
@@ -113,6 +115,8 @@
       <div id="editInfo">Stelle in der Liste anklicken. Dann im richtigen Moment <b>S</b> (Start) bzw. <b>E</b> (Ende) drücken.</div>
       <div id="editTarget">–</div>
       <div id="editTimes">Start <b id="eStart">–</b> · Ende <b id="eEnd">–</b> · jetzt <b id="eNow">0:00.0</b></div>
+      <label id="eNoteLabel" for="eNote">Hinweis zur Neuformulierung des Textes dieser Stelle:</label>
+      <textarea id="eNote" placeholder="z. B. Terzfall des Zauberspruchs erwähnen, Fachbegriff ergänzen …"></textarea>
       <div class="row">
         <button id="ePre" title="3 Sekunden vor dem Start abspielen (P)">▶ ab 3 s vor Start <span class="key">P</span></button>
         <button id="eSetStart" title="Start auf aktuelle Zeit setzen (S)">Start = jetzt <span class="key">S</span></button>
@@ -234,11 +238,11 @@ const STORE = 'zauberlehrling-zeiten-v3';
 let saved = {};
 if (EDIT) {
   try { saved = JSON.parse(localStorage.getItem(STORE) || '{}'); } catch (err) { saved = {}; }
-  STELLEN.forEach(e => { const v = saved[e.i]; if (v) { e.s = v.s; e.e = v.e; e.edited = true; } });
+  STELLEN.forEach(e => { const v = saved[e.i]; if (v) { if (v.s != null) { e.s = v.s; e.e = v.e; e.edited = true; } if (v.note) e.note = v.note; } });
 }
 function persist() {
   const o = {};
-  STELLEN.forEach(e => { if (e.edited) o[e.i] = { s: e.s, e: e.e }; });
+  STELLEN.forEach(e => { if (e.edited || e.note) o[e.i] = e.edited ? { s: e.s, e: e.e, note: e.note || '' } : { note: e.note }; });
   try { localStorage.setItem(STORE, JSON.stringify(o)); } catch (err) {}
 }
 
@@ -253,7 +257,7 @@ function refreshEntry(e) {
   const b = buttons[e.i];
   b.querySelector('.meta').textContent = metaText(e);
   const m = b.querySelector('.edited');
-  if (m) m.textContent = e.edited ? ' ✓ bearbeitet' : '';
+  if (m) m.textContent = (e.edited ? ' ✓ bearbeitet' : '') + (e.note ? ' ✎ Hinweis' : '');
 }
 (function renderList() {
   const groups = [];
@@ -427,6 +431,7 @@ function updateEditPanel() {
   $('editTarget').textContent = e.titel + ' – ' + [e.ziffer ? 'Ziffer ' + e.ziffer : '', e.takte ? 'T. ' + e.takte : ''].filter(Boolean).join(', ');
   $('eStart').textContent = fmt1(e.s);
   $('eEnd').textContent = fmt1(e.e);
+  $('eNote').value = e.note || '';
 }
 function changeTime(which, value) {
   if (!current) return;
@@ -439,10 +444,11 @@ function exportText() {
   const q = v => "'" + String(v).replace(/'/g, '’') + "'";
   return 'const STELLEN = [\n' + STELLEN.map(e =>
     '  { gruppe: ' + q(e.gruppe) + ', titel: ' + q(e.titel) + ', ziffer: ' + q(e.ziffer) + ', takte: ' + q(e.takte) + ',\n' +
-    '    start: ' + q(fmt1(e.s)) + ', ende: ' + q(fmt1(e.e)) + ', text: ' + q(e.text) + ' },'
+    '    start: ' + q(fmt1(e.s)) + ', ende: ' + q(fmt1(e.e)) + ', text: ' + q(e.text) + (e.note ? ',\n    HINWEIS: ' + q(e.note) : '') + ' },'
   ).join('\n') + '\n];';
 }
 if (EDIT) {
+  $('eNote').oninput = () => { if (!current) return; current.note = $('eNote').value; persist(); refreshEntry(current); };
   $('ePre').onclick = () => { if (current) playFrom(current.s - 3, current.e); };
   $('eSetStart').onclick = () => { if (ready) changeTime('s', player.getCurrentTime()); };
   $('eSetEnd').onclick = () => { if (ready) changeTime('e', player.getCurrentTime()); };
